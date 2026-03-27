@@ -51,8 +51,9 @@
   .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
   .form-group { flex: 1; }
   .form-group label {
-    display: block; font-size: 12px; font-weight: 600; color: #666;
-    margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;
+    display: block; font-size: 12px; font-weight: 600;
+    color: #666; margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.3px;
   }
   .form-group input, .form-group select, .form-group textarea {
     width: 100%; padding: 10px 12px;
@@ -113,6 +114,7 @@
 </style>
 </head>
 <body>
+
 <div class="header">
   <svg width="120" height="40" viewBox="0 0 240 80">
     <rect x="0" y="0" width="240" height="52" rx="2" fill="white"/>
@@ -122,6 +124,7 @@
   </svg>
   <div><h1>Hydrant Flow Test</h1><small>Field Report Generator</small></div>
 </div>
+
 <div class="container">
   <!-- Job Info -->
   <div class="card">
@@ -136,6 +139,7 @@
     <div class="form-row"><div class="form-group"><label>Hydrant #</label><input type="text" id="hydrantNum" placeholder="e.g. Hydrants 1-12"></div></div>
     <div class="form-row"><div class="form-group"><label>Notes <span class="optional-tag">(optional)</span></label><textarea id="notes" placeholder="Additional notes..."></textarea></div></div>
   </div>
+
   <!-- GPS -->
   <div class="card">
     <div class="card-title">GPS Location</div>
@@ -149,6 +153,7 @@
     </button>
     <div class="map-container" id="mapContainer"><span>Map will appear after GPS lock</span></div>
   </div>
+
   <!-- Static & Residual -->
   <div class="card">
     <div class="card-title">Static &amp; Residual Hydrant</div>
@@ -157,6 +162,7 @@
       <div class="form-group"><label>Residual Pressure</label><input type="number" id="residualPressure" placeholder="60" oninput="calculate()"><div class="unit">psi (while flowing)</div></div>
     </div>
   </div>
+
   <!-- Outlet #1 -->
   <div class="card">
     <div class="card-title">Flow Hydrant — Outlet #1</div>
@@ -170,6 +176,7 @@
       </div>
     </div>
   </div>
+
   <!-- Outlet #2 -->
   <div class="card">
     <div class="card-title">Flow Hydrant — Outlet #2 <span class="optional-tag">(optional)</span></div>
@@ -183,6 +190,7 @@
       </div>
     </div>
   </div>
+
   <!-- Results -->
   <div class="card" id="resultsCard" style="display:none;">
     <div class="card-title">Calculated Results</div>
@@ -198,10 +206,12 @@
     </div>
     <div class="chart-container"><canvas id="flowChart" width="560" height="380"></canvas></div>
   </div>
+
   <!-- Generate -->
   <div class="card">
     <button class="generate-btn" onclick="generatePDF()" id="pdfBtn" disabled>Generate PDF Report</button>
   </div>
+
   <div style="text-align:center; padding: 20px; font-size: 11px; color: #aaa;">
     DNT Construction &bull; (512) 837-6700 &bull; dntconstruction.com
   </div>
@@ -211,8 +221,7 @@
 // ==================== GPS ====================
 function getGPS() {
   const btn = document.getElementById('gpsBtn');
-  btn.classList.add('loading');
-  btn.textContent = 'Locating...';
+  btn.classList.add('loading'); btn.textContent = 'Locating...';
   if (!navigator.geolocation) { btn.textContent = 'GPS Not Available'; return; }
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -222,12 +231,16 @@ function getGPS() {
       btn.textContent = 'Location Found!';
       updateMap(pos.coords.latitude, pos.coords.longitude);
       fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`)
-        .then(r=>r.json()).then(d=>{ if(d.display_name && !document.getElementById('address').value) document.getElementById('address').value=d.display_name.split(',').slice(0,3).join(','); }).catch(()=>{});
+        .then(r=>r.json()).then(d=>{
+          if(d.display_name && !document.getElementById('address').value)
+            document.getElementById('address').value=d.display_name.split(',').slice(0,3).join(',');
+        }).catch(()=>{});
     },
     () => { btn.classList.remove('loading'); btn.textContent = 'Location Failed - Try Again'; },
     { enableHighAccuracy: true, timeout: 15000 }
   );
 }
+
 function updateMap(lat, lng) {
   const c = document.getElementById('mapContainer');
   const bbox = `${(lng-0.005).toFixed(6)},${(lat-0.003).toFixed(6)},${(lng+0.005).toFixed(6)},${(lat+0.003).toFixed(6)}`;
@@ -243,6 +256,7 @@ function getCurveData(sp, rp, tf) {
   for (let i=0; i<=100; i++) { const p=sp*(1-i/100); pts.push({flow: tf*Math.pow((sp-p)/(sp-rp),0.54), pressure:p}); }
   return pts;
 }
+
 let currentResults = null;
 function calculate() {
   const sp=parseFloat(document.getElementById('staticPressure').value);
@@ -254,7 +268,11 @@ function calculate() {
   const d2=parseFloat(document.getElementById('diameter2').value)||0;
   const c2=parseFloat(document.getElementById('coeff2').value)||0;
   const f1=calcFlow(p1,d1,c1), f2=calcFlow(p2,d2,c2), tf=f1+f2;
-  if (!sp||!rp||!p1) { document.getElementById('resultsCard').style.display='none'; document.getElementById('pdfBtn').disabled=true; currentResults=null; return; }
+  if (!sp||!rp||!p1) {
+    document.getElementById('resultsCard').style.display='none';
+    document.getElementById('pdfBtn').disabled=true;
+    currentResults=null; return;
+  }
   const af=calcAvail(sp,rp,tf,20);
   document.getElementById('resFlow1').textContent=f1.toLocaleString();
   document.getElementById('resFlow2').textContent=f2>0?f2.toLocaleString():'—';
@@ -310,245 +328,7 @@ function drawChartOnCanvas(canvas, sp, rp, tf, forPdf) {
 }
 function drawChart(sp,rp,tf){ drawChartOnCanvas(document.getElementById('flowChart'),sp,rp,tf,false); }
 
-// ==================== PURE JS PDF GENERATOR ====================
-class MiniPDF {
-  constructor() {
-    this.objects = [];
-    this.pages = [];
-    this.fonts = {};
-    this.currentPage = null;
-    this.pageWidth = 612;  // Letter 8.5x11 in points
-    this.pageHeight = 792;
-    this._setupFonts();
-  }
-  _setupFonts() {
-    // Standard PDF fonts - no embedding needed
-    this.fonts['Helvetica'] = this._addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-    this.fonts['Helvetica-Bold'] = this._addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
-  }
-  _addObj(content) {
-    const id = this.objects.length + 1;
-    this.objects.push({ id, content });
-    return id;
-  }
-  addPage() {
-    this.currentPage = { streams: [], images: [] };
-    this.pages.push(this.currentPage);
-    return this;
-  }
-  // Coordinate helpers: input in mm from top-left, convert to points from bottom-left
-  _x(mm) { return mm * 72 / 25.4; }
-  _y(mm) { return this.pageHeight - (mm * 72 / 25.4); }
-
-  setFont(name, size) { this.currentPage.streams.push(`/F${name==='bold'?2:1} ${size} Tf`); this._fontSize=size; this._fontBold=name==='bold'; return this; }
-  setColor(r, g, b) { this.currentPage.streams.push(`${r/255} ${g/255} ${b/255} rg`); return this; }
-  setStrokeColor(r, g, b) { this.currentPage.streams.push(`${r/255} ${g/255} ${b/255} RG`); return this; }
-
-  text(str, xmm, ymm, opts={}) {
-    const x = this._x(xmm);
-    const y = this._y(ymm);
-    const escaped = str.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
-    let tx = x;
-    if (opts.align === 'right') {
-      const w = this._measureText(str);
-      tx = x - w;
-    } else if (opts.align === 'center') {
-      const w = this._measureText(str);
-      tx = x - w/2;
-    }
-    this.currentPage.streams.push(`BT ${tx.toFixed(2)} ${y.toFixed(2)} Td (${escaped}) Tj ET`);
-    return this;
-  }
-  _measureText(str) {
-    // Approximate: Helvetica average char width ~0.5 * fontSize
-    const avg = this._fontBold ? 0.56 : 0.52;
-    return str.length * this._fontSize * avg;
-  }
-  rect(xmm, ymm, wmm, hmm, fill=true) {
-    const x=this._x(xmm), y=this._y(ymm+hmm), w=this._x(wmm)-this._x(0), h=this._x(hmm)-this._x(0);
-    this.currentPage.streams.push(`${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re ${fill?'f':'S'}`);
-    return this;
-  }
-  roundedRect(xmm, ymm, wmm, hmm) {
-    // Simplified: just a regular filled rect
-    return this.rect(xmm, ymm, wmm, hmm, true);
-  }
-  line(x1mm, y1mm, x2mm, y2mm, widthPt=1) {
-    const x1=this._x(x1mm),y1=this._y(y1mm),x2=this._x(x2mm),y2=this._y(y2mm);
-    this.currentPage.streams.push(`${widthPt} w ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S`);
-    return this;
-  }
-  addImage(dataUrl, xmm, ymm, wmm, hmm) {
-    // Store image reference - will be resolved during build
-    const imgIdx = this.currentPage.images.length;
-    this.currentPage.images.push({ dataUrl, xmm, ymm, wmm, hmm, idx: imgIdx });
-    this.currentPage.streams.push(`__IMG_${imgIdx}__`);
-    return this;
-  }
-
-  build() {
-    // Process all pages and images first
-    const allImageObjs = [];
-    this.pages.forEach((page, pi) => {
-      page.images.forEach(img => {
-        const raw = atob(img.dataUrl.split(',')[1]);
-        const bytes = new Uint8Array(raw.length);
-        for (let i=0; i<raw.length; i++) bytes[i] = raw.charCodeAt(i);
-
-        // Parse PNG to get raw pixel data
-        const pngData = this._decodePNG(bytes);
-        if (!pngData) return;
-
-        const streamBytes = pngData.rgbData;
-        const imgStream = String.fromCharCode.apply(null, streamBytes);
-
-        let imgDict = `<< /Type /XObject /Subtype /Image /Width ${pngData.width} /Height ${pngData.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length ${streamBytes.length}`;
-        if (pngData.alphaData) {
-          // Add soft mask for alpha
-          const alphaStream = String.fromCharCode.apply(null, pngData.alphaData);
-          const alphaObjId = this._addObj(`<< /Type /XObject /Subtype /Image /Width ${pngData.width} /Height ${pngData.height} /ColorSpace /DeviceGray /BitsPerComponent 8 /Length ${pngData.alphaData.length} >>\nstream\n${alphaStream}\nendstream`);
-          imgDict += ` /SMask ${alphaObjId} 0 R`;
-        }
-        imgDict += ` >>`;
-
-        const objId = this._addObj(imgDict + `\nstream\n${imgStream}\nendstream`);
-        img.objId = objId;
-        img.resourceName = `Im${allImageObjs.length}`;
-        allImageObjs.push(img);
-
-        // Replace placeholder in stream
-        const x=this._x(img.xmm), y=this._y(img.ymm+img.hmm);
-        const w=this._x(img.wmm)-this._x(0), h=this._x(img.hmm)-this._x(0);
-        const imgCmd = `q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /${img.resourceName} Do Q`;
-        const idx = page.streams.indexOf(`__IMG_${img.idx}__`);
-        if (idx >= 0) page.streams[idx] = imgCmd;
-      });
-    });
-
-    // Build PDF
-    const parts = [];
-    parts.push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
-
-    // Recalculate objects with proper offsets
-    const offsets = [];
-    let pos = parts[0].length;
-
-    // Font objects are already added. Now add page content streams and page objects.
-    const pageObjIds = [];
-    this.pages.forEach((page, pi) => {
-      const streamContent = page.streams.join('\n');
-      const streamObjId = this._addObj(`<< /Length ${streamContent.length} >>\nstream\n${streamContent}\nendstream`);
-
-      // Build resource dict
-      let xobjDict = '';
-      if (page.images.length > 0) {
-        const xobjs = page.images.map(img => `/${img.resourceName} ${img.objId} 0 R`).join(' ');
-        xobjDict = ` /XObject << ${xobjs} >>`;
-      }
-
-      const pageObjId = this._addObj(`<< /Type /Page /Parent 1 0 R /MediaBox [0 0 ${this.pageWidth} ${this.pageHeight}] /Contents ${streamObjId} 0 R /Resources << /Font << /F1 ${this.fonts['Helvetica']} 0 R /F2 ${this.fonts['Helvetica-Bold']} 0 R >>${xobjDict} >> >>`);
-      pageObjIds.push(pageObjId);
-    });
-
-    // Now rebuild: object 1 = Pages catalog
-    // We need to restructure. Let's just build from scratch.
-    const out = [];
-    const objOffsets = [];
-    out.push('%PDF-1.4\n');
-
-    // Collect all objects and renumber
-    const finalObjects = [];
-    // Obj 1: Pages
-    // Obj 2: Catalog
-    // Obj 3+: fonts, streams, page objs, images...
-
-    // Let's simplify: just serialize this.objects in order, then add Pages and Catalog
-    const pagesObjNum = this.objects.length + 1;
-    const catalogObjNum = this.objects.length + 2;
-
-    // Fix page objects to reference correct parent
-    pageObjIds.forEach(pid => {
-      const obj = this.objects[pid-1];
-      obj.content = obj.content.replace('/Parent 1 0 R', `/Parent ${pagesObjNum} 0 R`);
-    });
-
-    let currentPos = out[0].length;
-
-    // Write all objects
-    for (let i=0; i<this.objects.length; i++) {
-      objOffsets[i] = currentPos;
-      const s = `${i+1} 0 obj\n${this.objects[i].content}\nendobj\n`;
-      out.push(s);
-      currentPos += s.length;
-    }
-
-    // Pages object
-    objOffsets[pagesObjNum-1] = currentPos;
-    const kidsStr = pageObjIds.map(id=>`${id} 0 R`).join(' ');
-    const pagesStr = `${pagesObjNum} 0 obj\n<< /Type /Pages /Kids [${kidsStr}] /Count ${pageObjIds.length} >>\nendobj\n`;
-    out.push(pagesStr);
-    currentPos += pagesStr.length;
-
-    // Catalog
-    objOffsets[catalogObjNum-1] = currentPos;
-    const catStr = `${catalogObjNum} 0 obj\n<< /Type /Catalog /Pages ${pagesObjNum} 0 R >>\nendobj\n`;
-    out.push(catStr);
-    currentPos += catStr.length;
-
-    // Xref
-    const xrefPos = currentPos;
-    const totalObjs = catalogObjNum + 1;
-    let xref = `xref\n0 ${totalObjs}\n`;
-    xref += '0000000000 65535 f \n';
-    for (let i=0; i<catalogObjNum; i++) {
-      const off = objOffsets[i] !== undefined ? objOffsets[i] : 0;
-      xref += off.toString().padStart(10,'0') + ' 00000 n \n';
-    }
-    out.push(xref);
-
-    // Trailer
-    out.push(`trailer\n<< /Size ${totalObjs} /Root ${catalogObjNum} 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);
-
-    return out.join('');
-  }
-
-  _decodePNG(bytes) {
-    // Minimal PNG decoder for our canvas output
-    // Check PNG signature
-    if (bytes[0]!==137||bytes[1]!==80||bytes[2]!==78||bytes[3]!==71) return null;
-    let pos = 8;
-    let width=0, height=0, bitDepth=0, colorType=0;
-    const idatChunks = [];
-
-    while (pos < bytes.length) {
-      const len = (bytes[pos]<<24)|(bytes[pos+1]<<16)|(bytes[pos+2]<<8)|bytes[pos+3];
-      const type = String.fromCharCode(bytes[pos+4],bytes[pos+5],bytes[pos+6],bytes[pos+7]);
-      pos += 8;
-      if (type === 'IHDR') {
-        width=(bytes[pos]<<24)|(bytes[pos+1]<<16)|(bytes[pos+2]<<8)|bytes[pos+3];
-        height=(bytes[pos+4]<<24)|(bytes[pos+5]<<16)|(bytes[pos+6]<<8)|bytes[pos+7];
-        bitDepth=bytes[pos+8]; colorType=bytes[pos+9];
-      } else if (type === 'IDAT') {
-        idatChunks.push(bytes.slice(pos, pos+len));
-      } else if (type === 'IEND') {
-        break;
-      }
-      pos += len + 4; // skip CRC
-    }
-
-    // We'll use canvas to decode instead - much simpler
-    return null;
-  }
-
-  // Use canvas-based approach for image embedding
-  buildWithCanvas(chartCanvas) {
-    // Instead of PNG decoding, we'll embed JPEG which is simpler
-    const jpegDataUrl = chartCanvas.toDataURL('image/jpeg', 0.95);
-    return jpegDataUrl;
-  }
-}
-
-// ==================== SIMPLIFIED PDF USING BLOB ====================
+// ==================== SIMPLIFIED PDF USING PRINT ====================
 function generatePDF() {
   if (!currentResults) return;
   const btn = document.getElementById('pdfBtn');
@@ -571,19 +351,16 @@ function generatePDF() {
       dtStr = d.toLocaleDateString('en-US')+' '+(timeVal?d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'');
     }
 
-    // Generate chart image
+    // Generate chart image — compact for PDF
     const chartCanvas = document.createElement('canvas');
-    chartCanvas.width = 1680; chartCanvas.height = 600;
+    chartCanvas.width = 1680; chartCanvas.height = 420;
     const cctx = chartCanvas.getContext('2d');
     cctx.scale(3, 3);
     drawChartOnCanvas(chartCanvas, r.staticP, r.residualP, r.totalFlow, true);
-    // Reset scale for toDataURL
     const chartDataUrl = chartCanvas.toDataURL('image/png');
 
-    // Build a full HTML report and use print-to-PDF workaround
     const html = buildReportHTML(r, jobName, address, testedBy, dtStr, hydrantNum, notes, lat, lng, chartDataUrl);
 
-    // Open in new window and trigger print
     const printWin = window.open('', '_blank', 'width=850,height=1100');
     printWin.document.write(html);
     printWin.document.close();
@@ -600,45 +377,49 @@ function generatePDF() {
 function buildReportHTML(r, jobName, address, testedBy, dtStr, hydrantNum, notes, lat, lng, chartImg) {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>DNT Flow Report - ${jobName}</title>
 <style>
-  @page { size: letter; margin: 0.5in; }
-  @media print { body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
+  @page { size: letter; margin: 0.4in 0.5in; }
+  @media print {
+    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .page-content { page-break-inside: avoid; }
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1a1a1a; }
-  .header { background: #1a1a1a; color: white; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; margin-bottom: 12px; }
-  .header-left h1 { font-size: 22px; letter-spacing: 2px; margin: 0; }
-  .header-left small { font-size: 8px; letter-spacing: 3px; display: block; margin-top: 2px; }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #1a1a1a; }
+  .header { background: #1a1a1a; color: white; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; margin-bottom: 8px; }
+  .header-left h1 { font-size: 20px; letter-spacing: 2px; margin: 0; }
+  .header-left small { font-size: 7px; letter-spacing: 3px; display: block; margin-top: 1px; }
   .header-right { text-align: right; }
-  .header-right h2 { font-size: 15px; font-weight: 600; }
-  .header-right p { font-size: 8px; opacity: 0.7; margin-top: 2px; }
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 12px; background: #f9f9f9; }
-  .info-cell { padding: 8px 12px; border-right: 1px solid #eee; }
+  .header-right h2 { font-size: 13px; font-weight: 600; }
+  .header-right p { font-size: 7px; opacity: 0.7; margin-top: 1px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px; background: #f9f9f9; }
+  .info-cell { padding: 5px 10px; border-right: 1px solid #eee; }
   .info-cell:last-child { border-right: none; }
-  .info-cell .label { font-size: 7px; color: #888; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
-  .info-cell .value { font-size: 11px; font-weight: 600; margin-top: 2px; }
-  .section-header { background: #1a1a1a; color: white; padding: 5px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 3px 3px 0 0; }
-  .data-section { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: 12px; }
-  .data-col { border: 1px solid #ddd; padding: 10px 14px; }
+  .info-cell .label { font-size: 6px; color: #888; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+  .info-cell .value { font-size: 10px; font-weight: 600; margin-top: 1px; }
+  .section-header { background: #1a1a1a; color: white; padding: 4px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 3px 3px 0 0; }
+  .data-section { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: 8px; }
+  .data-col { border: 1px solid #ddd; padding: 6px 10px; }
   .data-col:first-child { border-right: none; border-radius: 0 0 0 4px; }
   .data-col:last-child { border-radius: 0 0 4px 0; }
-  .data-col h3 { font-size: 10px; color: #1a1a1a; text-transform: uppercase; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
-  .data-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 10px; }
+  .data-col h3 { font-size: 9px; color: #1a1a1a; text-transform: uppercase; margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px solid #eee; }
+  .data-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 9px; }
   .data-row .dl { color: #888; }
   .data-row .dv { font-weight: 700; }
-  .avail-box { background: #27ae60; color: white; padding: 12px 20px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .avail-box .al { font-size: 12px; font-weight: 600; }
-  .avail-box .av { font-size: 22px; font-weight: 800; }
-  .chart-section { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+  .avail-box { background: #27ae60; color: white; padding: 8px 16px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .avail-box .al { font-size: 11px; font-weight: 600; }
+  .avail-box .av { font-size: 20px; font-weight: 800; }
+  .chart-section { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
   .chart-section .section-header { border-radius: 4px 4px 0 0; }
-  .chart-section img { width: 100%; display: block; }
-  .footer { border-top: 1px solid #ccc; padding-top: 8px; text-align: center; font-size: 8px; color: #aaa; }
-  .notes-section { border: 1px solid #ddd; border-radius: 4px; padding: 10px 14px; margin-bottom: 12px; }
-  .notes-section h3 { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
-  .notes-section p { font-size: 10px; color: #333; }
+  .chart-section img { width: 100%; height: auto; display: block; }
+  .footer { border-top: 1px solid #ccc; padding-top: 6px; text-align: center; font-size: 7px; color: #aaa; }
+  .notes-section { border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; margin-bottom: 8px; }
+  .notes-section h3 { font-size: 8px; color: #888; text-transform: uppercase; margin-bottom: 2px; }
+  .notes-section p { font-size: 9px; color: #333; }
 </style></head><body>
+<div class="page-content">
 <div class="header">
   <div class="header-left">
     <h1>DNT</h1>
-    <small>CONSTRUCTION</small>
+    <small>C O N S T R U C T I O N</small>
   </div>
   <div class="header-right">
     <h2>Hydrant Flow Test Report</h2>
@@ -673,7 +454,7 @@ ${lat&&lng?`<div class="info-grid" style="grid-template-columns:1fr 1fr 1fr"><di
     <div class="data-row"><span class="dl">Diameter #2</span><span class="dv">${r.d2} in</span></div>
     <div class="data-row"><span class="dl">Coefficient #2</span><span class="dv">${r.c2}</span></div>
     <div class="data-row"><span class="dl">Flow #2</span><span class="dv">${r.flow2.toLocaleString()} gpm</span></div>`:''}
-    <div class="data-row" style="border-top:1px solid #eee; padding-top:4px; margin-top:4px;"><span class="dl">Total Flow</span><span class="dv">${r.totalFlow.toLocaleString()} gpm</span></div>
+    <div class="data-row" style="border-top:1px solid #eee; padding-top:3px; margin-top:3px;"><span class="dl">Total Flow</span><span class="dv">${r.totalFlow.toLocaleString()} gpm</span></div>
   </div>
 </div>
 
@@ -692,6 +473,7 @@ ${notes?`<div class="notes-section"><h3>Notes</h3><p>${esc(notes)}</p></div>`:''
 <div class="footer">
   DNT Construction &nbsp;|&nbsp; dntconstruction.com &nbsp;|&nbsp; (512) 837-6700<br>
   Report generated ${new Date().toLocaleDateString('en-US')} ${new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+</div>
 </div>
 </body></html>`;
 }
